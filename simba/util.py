@@ -2,9 +2,10 @@ import argparse
 import json
 import logging
 import subprocess
-from datetime import datetime, timedelta
-from scipy.interpolate import LinearNDInterpolator
+from functools import lru_cache
 
+import numpy as np
+from scipy.interpolate import LinearNDInterpolator
 from spice_ev.util import set_options_from_config
 
 
@@ -144,6 +145,17 @@ def get_csv_delim(path, other_delims=set()):
     return ","
 
 
+@lru_cache
+def cached_interpolator(points, values) -> LinearNDInterpolator:
+    """
+    Creates a LinearNDInterpolator from a lookup table. It is cached using the
+    lru_cache decorator to avoid creating the interpolator multiple times.
+    """
+    points = np.array(points)
+    values = np.array(values)
+    return LinearNDInterpolator(points, values)
+
+
 def nd_interp(input_values, lookup_table):
     """ Get the interpolated output value for a given input value of n dimensions and a given
     lookup table with n+1 columns. Input values outside of the lookup table are
@@ -173,7 +185,7 @@ def nd_interp(input_values, lookup_table):
     # The last entry of the lookup table is the output value
     values = [row[-1] for row in lookup_table]
 
-    interpolator = LinearNDInterpolator(points, values)
+    interpolator = cached_interpolator(tuple(points), tuple(values))
     return interpolator(input_values)
 
 
