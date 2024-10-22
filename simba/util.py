@@ -4,9 +4,10 @@ import logging
 import subprocess
 from functools import lru_cache
 
-import numpy as np
-from scipy.interpolate import LinearNDInterpolator
+from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
+
 from spice_ev.util import set_options_from_config
+import numpy as np
 
 
 def get_git_revision_hash() -> str:
@@ -186,7 +187,13 @@ def nd_interp(input_values, lookup_table):
     values = [row[-1] for row in lookup_table]
 
     interpolator = cached_interpolator(tuple(points), tuple(values))
-    return interpolator(input_values)
+    result = interpolator(input_values)
+    if np.isnan(result):
+        # If no value can be found using linear interpolation, we are outside the convex hull
+        # Use a Nearest Neighbour approach to find the closest value
+        interp2 = NearestNDInterpolator(np.array(points), np.array(values))
+        result = interp2(input_values)
+    return result
 
 
 def setup_logging(args, time_str):
