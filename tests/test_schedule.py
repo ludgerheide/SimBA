@@ -1,17 +1,18 @@
-import math
 from argparse import Namespace
 from copy import deepcopy
 from datetime import timedelta, datetime # noqa
+import math
 import pytest
 import sys
+
+from spice_ev.events import VehicleEvent
 import spice_ev.scenario as scenario
 
-from simba.simulate import pre_simulation
-from spice_ev.events import VehicleEvent
-from tests.conftest import example_root, file_root
-from tests.helpers import generate_basic_schedule
 from simba import rotation, schedule, util
 from simba.data_container import DataContainer
+from simba.simulate import pre_simulation
+from tests.conftest import example_root, file_root
+from tests.helpers import generate_basic_schedule
 
 mandatory_args = {
     "min_recharge_deps_oppb": 1,
@@ -687,7 +688,7 @@ class TestSchedule(BasicSchedule):
         # just file given
         prices = schedule.get_price_list_from_csv({'csv_file': tmp_path / 'price.csv'})
         assert len(prices) == 3
-        assert prices[0] == ('2022-03-07 00:00:00', 1)
+        assert prices[0] == ['2022-03-07 00:00:00', (None, 1.0, None)]
 
         # change column
         with pytest.raises(KeyError):
@@ -705,13 +706,13 @@ class TestSchedule(BasicSchedule):
             'csv_file': tmp_path / 'price.csv',
             'factor': 1.5
         })
-        assert prices[0][1] == 1.5
+        assert prices[0][1] == (None, 1.5, None)
 
     def test_generate_event_list_from_prices(self):
         prices = [
-            ('2022-03-07 00:00:00', 1),
-            ('2022-03-07 01:00:00', 2),
-            ('2022-03-07 02:00:00', 3)]
+            ['2022-03-07 00:00:00', (1,)],
+            ['2022-03-07 01:00:00', (2,)],
+            ['2022-03-07 02:00:00', (3,)]]
         start = datetime.fromisoformat('2022-03-07')
         stop = datetime.fromisoformat('2022-03-08')
 
@@ -719,13 +720,13 @@ class TestSchedule(BasicSchedule):
         assert len(schedule.generate_event_list_from_prices([], 'GC', start, stop)) == 0
 
         # basic functionality: all events
-        events = schedule.generate_event_list_from_prices(prices, 'GC', start, stop)
+        events = schedule.generate_event_list_from_prices(deepcopy(prices), 'GC', start, stop)
         assert len(events) == 3
 
         # change list start time
         # in-between: all events, different time
         events = schedule.generate_event_list_from_prices(
-            prices, 'GC', start, stop,
+            deepcopy(prices), 'GC', start, stop,
             start_events='2022-03-07 01:30:00',
             price_interval_s=60
         )
@@ -734,19 +735,19 @@ class TestSchedule(BasicSchedule):
 
         # before: only last event
         events = schedule.generate_event_list_from_prices(
-            prices, 'GC', start, stop,
+            deepcopy(prices), 'GC', start, stop,
             start_events='1970-01-01',
             price_interval_s=3600
         )
         assert len(events) == 1 and events[0]["cost"]["value"] == 3
         # change start date after price list: only last event
         start = datetime.fromisoformat('2022-03-07 12:00:00')
-        events = schedule.generate_event_list_from_prices(prices, 'GC', start, stop)
+        events = schedule.generate_event_list_from_prices(deepcopy(prices), 'GC', start, stop)
         assert len(events) == 1 and events[0]["cost"]["value"] == 3
 
         # after: no events
         events = schedule.generate_event_list_from_prices(
-            prices, 'GC', start, stop,
+            deepcopy(prices), 'GC', start, stop,
             start_events='3000-01-01',
             price_interval_s=3600
         )
@@ -761,14 +762,14 @@ class TestSchedule(BasicSchedule):
 
         some_rot = next(rot_iter)
         first_trip = some_rot.trips[0]
-        del first_trip.rotation
-        r.add_trip(vars(first_trip))
+        first_trip.rotation = r
+        r.add_trip(first_trip)
         r.trips[0].consumption = None
         s.calculate_rotation_consumption(r)
         assert r.trips[0].consumption is not None
         second_trip = some_rot.trips[1]
-        del second_trip.rotation
-        r.add_trip(vars(second_trip))
+        second_trip.rotation = r
+        r.add_trip(second_trip)
         for trip in r.trips:
             trip.consumption = None
         s.calculate_rotation_consumption(r)
