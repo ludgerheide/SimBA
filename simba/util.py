@@ -6,9 +6,9 @@ from pathlib import Path
 import shutil
 import subprocess
 from functools import lru_cache
-
+from datetime import datetime
 import numpy as np
-from scipy.interpolate import LinearNDInterpolator
+from scipy.interpolate import NearestNDInterpolator
 
 from spice_ev.costs import COST_CALCULATION
 from spice_ev.strategy import STRATEGIES
@@ -180,14 +180,14 @@ def get_dict_from_csv(column, file_path, index):
 
 
 @lru_cache
-def cached_interpolator(points, values) -> LinearNDInterpolator:
+def cached_interpolator(points, values) -> NearestNDInterpolator:
     """
-    Creates a LinearNDInterpolator from a lookup table. It is cached using the
+    Creates a NearestNDInterpolator from a lookup table. It is cached using the
     lru_cache decorator to avoid creating the interpolator multiple times.
     """
     points = np.array(points)
     values = np.array(values)
-    return LinearNDInterpolator(points, values)
+    return NearestNDInterpolator(points, values)
 
 
 def nd_interp(input_values, lookup_table):
