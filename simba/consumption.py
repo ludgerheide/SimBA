@@ -115,12 +115,12 @@ class Consumption:
         :rtype: function
         """
 
-        inc_col = df[INCLINE]
-        tmp_col = df[T_AMB]
-        lol_col = df[LEVEL_OF_LOADING]
-        speed_col = df[SPEED]
-        cons_col = df[CONSUMPTION]
-        data_table = list(zip(inc_col, tmp_col, lol_col, speed_col, cons_col))
+        inc_col = tuple(df[INCLINE])
+        tmp_col = tuple(df[T_AMB])
+        lol_col = tuple(df[LEVEL_OF_LOADING])
+        speed_col = tuple(df[SPEED])
+        cons_col = tuple(df[CONSUMPTION])
+        data_table = tuple(zip(inc_col, tmp_col, lol_col, speed_col, cons_col))
 
         def interpol_function(this_incline, this_temp, this_lol, this_speed):
             input_point = (this_incline, this_temp, this_lol, this_speed)

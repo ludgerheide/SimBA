@@ -189,7 +189,7 @@ def cached_interpolator(points, values) -> NearestNDInterpolator:
     values = np.array(values)
     return NearestNDInterpolator(points, values)
 
-
+@lru_cache
 def nd_interp(input_values, lookup_table):
     """ Interpolates a value from a table.
 
